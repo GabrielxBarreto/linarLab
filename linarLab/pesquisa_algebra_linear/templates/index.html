@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101827">
+  <title>Lab Linear | Experimentos numéricos</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js" defer></script>
+  <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="Lab Linear, início">
+        <span class="brand-mark">L<span>²</span></span>
+        <span class="brand-name">LAB <b>LINEAR</b></span>
+      </a>
+      <div class="topbar-meta">
+        <span class="status-dot"></span>
+        <span>Ambiente local de experimentação</span>
+      </div>
+    </header>
+
+    <main class="main-content">
+      <section class="hero">
+        <div class="hero-copy">
+          <div class="eyebrow"><span class="eyebrow-line"></span> PESQUISA EM ÁLGEBRA LINEAR NUMÉRICA</div>
+          <h1>Investigue o comportamento<br class="desktop-break"> dos <em>sistemas lineares.</em></h1>
+          <p>Configure os experimentos, compare Gauss, LU e QR e acompanhe como o condicionamento afeta a precisão e o custo computacional.</p>
+        </div>
+        <div class="hero-equation" aria-hidden="true">
+          <div class="eq-label">SISTEMA LINEAR</div>
+          <div class="equation">Ax <span>=</span> b</div>
+          <div class="eq-foot">κ₂(A) · erro · resíduo · tempo</div>
+        </div>
+      </section>
+
+      <section class="workspace-grid">
+        <aside class="panel config-panel">
+          <div class="panel-heading">
+            <div>
+              <div class="section-kicker">01 / CONFIGURAÇÃO</div>
+              <h2>Parâmetros do teste</h2>
+            </div>
+            <span class="panel-icon">⚙</span>
+          </div>
+          <form id="experiment-form">
+            <div class="field-group">
+              <label for="dimensions">Dimensões das matrizes</label>
+              <input id="dimensions" name="dimensoes" type="text" value="10, 30, 50, 100" autocomplete="off">
+              <small>Valores inteiros separados por vírgula. Ex.: 10, 30, 50.</small>
+            </div>
+            <div class="field-group">
+              <label for="conditions">Números de condição</label>
+              <input id="conditions" name="condicoes" type="text" value="1, 10, 100, 1000, 10000, 100000, 1000000" autocomplete="off">
+              <small>Valores ≥ 1. Use potências de 10 para facilitar a leitura em escala logarítmica.</small>
+            </div>
+            <div class="field-row">
+              <div class="field-group">
+                <label for="seeds">Sementes</label>
+                <input id="seeds" name="num_sementes" type="number" min="1" max="50" value="5">
+              </div>
+              <div class="field-group">
+                <label for="timings">Repetições de tempo</label>
+                <input id="timings" name="repeticoes_tempo" type="number" min="1" max="50" value="5">
+              </div>
+            </div>
+            <div class="field-group">
+              <label for="seed-base">Semente inicial</label>
+              <input id="seed-base" name="seed_base" type="number" min="0" value="42">
+              <small>Permite reproduzir a mesma sequência de matrizes.</small>
+            </div>
+
+            <div class="method-list">
+              <div class="method-list-label">MÉTODOS INCLUÍDOS</div>
+              <div class="method-tags">
+                <span class="method-tag gauss"><i></i> Gauss + pivoteamento</span>
+                <span class="method-tag lu"><i></i> LU + pivoteamento</span>
+                <span class="method-tag qr"><i></i> QR · Householder</span>
+              </div>
+            </div>
+
+            <div class="estimate-box">
+              <span class="estimate-icon">∑</span>
+              <div><small>EXECUÇÕES PREVISTAS</small><strong id="execution-estimate">420</strong></div>
+              <span class="estimate-note">3 métodos</span>
+            </div>
+
+            <button class="primary-button" id="run-button" type="submit">
+              <span class="button-play">▶</span>
+              <span>Executar experimentos</span>
+              <span class="button-arrow">↗</span>
+            </button>
+            <p class="form-note">A execução ocorre localmente. Matrizes e cálculos não são enviados a serviços externos.</p>
+          </form>
+        </aside>
+
+        <div class="right-column">
+          <section class="panel progress-panel" aria-live="polite">
+            <div class="panel-heading compact-heading">
+              <div>
+                <div class="section-kicker">02 / EXECUÇÃO</div>
+                <h2>Monitoramento</h2>
+              </div>
+              <span class="run-badge idle" id="run-status">AGUARDANDO</span>
+            </div>
+            <div class="progress-summary">
+              <div>
+                <div class="progress-number"><span id="progress-current">0</span><small> / <span id="progress-total">0</span></small></div>
+                <div class="progress-caption" id="progress-message">Configure os parâmetros e inicie uma bateria de testes.</div>
+              </div>
+              <div class="progress-percent" id="progress-percent">0%</div>
+            </div>
+            <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+            <div class="live-details">
+              <div><span class="detail-label">DIMENSÃO ATUAL</span><strong id="current-dimension">—</strong></div>
+              <div><span class="detail-label">CONDICIONAMENTO</span><strong id="current-condition">—</strong></div>
+              <div><span class="detail-label">MÉTODO</span><strong id="current-method">—</strong></div>
+              <div><span class="detail-label">STATUS</span><strong id="current-result">—</strong></div>
+            </div>
+            <div id="job-error" class="error-message hidden"></div>
+          </section>
+
+          <section class="panel overview-panel">
+            <div class="panel-heading compact-heading">
+              <div>
+                <div class="section-kicker">03 / RESULTADOS</div>
+                <h2>Visão geral</h2>
+              </div>
+              <span class="results-indicator" id="results-indicator">SEM DADOS</span>
+            </div>
+            <div class="metric-cards">
+              <article class="metric-card">
+                <span class="metric-label">SISTEMAS TESTADOS</span>
+                <strong id="systems-count">—</strong>
+                <span class="metric-foot">combinações de parâmetros</span>
+              </article>
+              <article class="metric-card">
+                <span class="metric-label">RESOLUÇÕES OK</span>
+                <strong id="success-count">—</strong>
+                <span class="metric-foot">método × sistema × semente</span>
+              </article>
+              <article class="metric-card">
+                <span class="metric-label">FALHAS</span>
+                <strong id="failure-count">—</strong>
+                <span class="metric-foot">execuções com erro</span>
+              </article>
+            </div>
+            <div class="download-row hidden" id="download-row">
+              <a class="download-link" id="download-summary" href="#">↓ Resumo CSV</a>
+              <a class="download-link secondary-download" id="download-detailed" href="#">↓ Resultados detalhados</a>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section class="panel analysis-panel" id="analysis-panel">
+        <div class="analysis-header">
+          <div>
+            <div class="section-kicker">04 / ANÁLISE EXPLORATÓRIA</div>
+            <h2>Comparação dos métodos</h2>
+            <p>Após concluir uma execução, selecione a dimensão e a métrica para explorar os resultados agregados.</p>
+          </div>
+          <div class="analysis-controls">
+            <div class="select-control">
+              <label for="dimension-filter">DIMENSÃO</label>
+              <select id="dimension-filter" disabled><option value="">Aguardando dados</option></select>
+            </div>
+            <div class="select-control metric-select">
+              <label for="metric-filter">MÉTRICA</label>
+              <select id="metric-filter" disabled>
+                <option value="erro_relativo_mediano">Erro relativo</option>
+                <option value="residuo_relativo_mediano">Resíduo relativo</option>
+                <option value="erro_retroativo_mediano">Erro retroativo</option>
+                <option value="tempo_mediano_s">Tempo de execução</option>
+                <option value="erro_absoluto_mediano">Erro absoluto</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="chart-legend-note"><span class="legend-dot gauss-dot"></span> Gauss <span class="legend-dot lu-dot"></span> LU <span class="legend-dot qr-dot"></span> QR Householder <span class="chart-unit" id="chart-unit">Erro relativo (escala logarítmica no eixo X)</span></div>
+        <div class="chart-wrap" id="chart-wrap">
+          <div class="chart-empty" id="chart-empty">
+            <div class="empty-glyph">⌁</div>
+            <strong>Os gráficos aparecerão aqui</strong>
+            <span>Execute os testes para comparar o comportamento dos métodos.</span>
+          </div>
+          <canvas id="results-chart" class="hidden" aria-label="Gráfico de comparação dos métodos"></canvas>
+        </div>
+        <div class="table-heading">
+          <div><h3>Tabela de resultados</h3><p>Valores medianos das sementes para cada método.</p></div>
+          <span id="table-row-count">0 registros</span>
+        </div>
+        <div class="table-scroll">
+          <table id="results-table">
+            <thead>
+              <tr>
+                <th>Dimensão</th><th>Condicionamento</th><th>Método</th><th>Execuções OK</th><th>Tempo (s)</th><th>Erro relativo</th><th>Resíduo relativo</th><th>Erro retroativo</th>
+              </tr>
+            </thead>
+            <tbody id="results-table-body">
+              <tr><td colspan="8" class="table-empty">Nenhum resultado disponível. Execute um experimento para preencher a tabela.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="table-footnote">Os valores exibidos são medianas das sementes. O tempo inclui a resolução completa do sistema; a geração da matriz e o cálculo do número de condição ficam fora da cronometragem.</div>
+      </section>
+
+      <footer class="footer">
+        <span>LAB LINEAR <b>·</b> EXPERIMENTAÇÃO NUMÉRICA</span>
+        <span>Gauss · LU · QR Householder</span>
+      </footer>
+    </main>
+  </div>
+</body>
+</html>
